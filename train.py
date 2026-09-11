@@ -1,6 +1,5 @@
 """
-Скрипт для обучения YOLO26n модели на датасете птиц.
-Использует детальную конфигурацию с фиксированным seed для воспроизводимости.
+Скрипт для навчання YOLO-моделі для детекції птахів.
 """
 
 import argparse
@@ -12,14 +11,10 @@ import numpy as np
 import torch
 from ultralytics import YOLO
 
+ROOT = Path(__file__).resolve().parent
+
 
 def set_seed(seed: int = 42):
-    """
-    Фиксирует random seed для воспроизводимости результатов.
-
-    Args:
-        seed: Значение seed для фиксации случайности
-    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -27,102 +22,117 @@ def set_seed(seed: int = 42):
         torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    print(f"Seed установлен на {seed} для воспроизводимости")
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Seed встановлено на {seed} для відтворюваності")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Обучение YOLO модели для детекции птиц.",
+        description="Навчання YOLO-моделі для детекції птахів.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--model", default="yolo26n.pt", help="Базовая YOLO модель")
-    parser.add_argument("--data", default="data.yaml", help="Путь к файлу data.yaml")
-    parser.add_argument("--epochs", type=int, default=25, help="Количество эпох обучения")
-    parser.add_argument("--imgsz", type=int, default=640, help="Размер изображений")
-    parser.add_argument("--batch", type=int, default=16, help="Размер батча")
+    parser.add_argument("--weights", default="yolo26n.pt", help="Базова модель для навчання")
+    parser.add_argument("--data", default="data.yaml", help="Шлях до data.yaml")
+    parser.add_argument("--epochs", type=int, default=25, help="Кількість епох навчання")
+    parser.add_argument("--imgsz", type=int, default=640, help="Розмір зображень")
+    parser.add_argument("--batch", type=int, default=16, help="Розмір батчу")
     parser.add_argument(
         "--device",
         default="0" if torch.cuda.is_available() else "cpu",
-        help="Устройство обучения (cpu или cuda device index)",
+        help="Пристрій навчання (cpu або індекс GPU)",
     )
-    parser.add_argument("--workers", type=int, default=8, help="Количество worker процессов")
-    parser.add_argument("--seed", type=int, default=42, help="Seed для воспроизводимости")
-    parser.add_argument("--project", default="bird-detector", help="Папка для сохранения результатов")
-    parser.add_argument("--name", default="yolo26_birds", help="Имя эксперимента")
+    parser.add_argument("--workers", type=int, default=8, help="Кількість worker-процесів")
+    parser.add_argument("--seed", type=int, default=42, help="Seed для відтворюваності")
+    parser.add_argument("--project", default="bird-detector", help="Папка для результатів")
+    parser.add_argument("--name", default="yolo26_birds", help="Ім'я експерименту")
     parser.add_argument("--patience", type=int, default=10, help="Early stopping patience")
-    parser.add_argument("--save", action=argparse.BooleanOptionalAction, default=True, help="Сохранять чекпоинты")
-    parser.add_argument("--plots", action=argparse.BooleanOptionalAction, default=True, help="Формировать графики")
-    parser.add_argument("--verbose", action=argparse.BooleanOptionalAction, default=True, help="Подробный вывод")
+    parser.add_argument("--save", action=argparse.BooleanOptionalAction, default=True, help="Зберігати чекпоінти")
+    parser.add_argument("--plots", action=argparse.BooleanOptionalAction, default=True, help="Будувати графіки")
+    parser.add_argument("--verbose", action=argparse.BooleanOptionalAction, default=True, help="Показувати детальний лог")
     return parser
+
+
+def resolve_path(path: str) -> Path:
+    candidate = Path(path).expanduser()
+    if candidate.is_absolute():
+        return candidate
+    return ROOT / candidate
 
 
 def main():
     parser = build_parser()
     args = parser.parse_args()
 
-    config = {
-        'model': args.model,
-        'data': args.data,
-        'epochs': args.epochs,
-        'imgsz': args.imgsz,
-        'batch': args.batch,
-        'device': args.device,
-        'workers': args.workers,
-        'seed': args.seed,
-        'project': args.project,
-        'name': args.name,
-        'patience': args.patience,
-        'save': args.save,
-        'plots': args.plots,
-        'verbose': args.verbose,
-    }
+    weights_path = resolve_path(args.weights)
+    data_path = resolve_path(args.data)
 
-    print("=" * 50)
-    print("Конфигурация обучения:")
-    for key, value in config.items():
-        print(f"{key}: {value}")
-    print("=" * 50)
-
-    if not Path(config['data']).exists():
+    if not weights_path.exists():
         raise FileNotFoundError(
-            f"Файл {config['data']} не найден. "
-            "Сначала скачайте датасет: python download_dataset.py"
+            f"Файл ваг не знайдено: {weights_path}. "
+            "Спочатку завантажте базову модель: python download_model.py"
         )
 
-    set_seed(config['seed'])
+    if not data_path.exists():
+        raise FileNotFoundError(
+            f"Файл {data_path} не знайдено. "
+            "Спочатку завантажте датасет: python download_dataset.py"
+        )
 
-    print(f"\nЗагрузка базовой модели: {config['model']}")
-    print("Примечание: Модель yolo26n.pt должна быть в корне проекта")
-    model = YOLO(config['model'])
+    config = {
+        "weights": str(weights_path),
+        "data": str(data_path),
+        "epochs": args.epochs,
+        "imgsz": args.imgsz,
+        "batch": args.batch,
+        "device": args.device,
+        "workers": args.workers,
+        "seed": args.seed,
+        "project": args.project,
+        "name": args.name,
+        "patience": args.patience,
+        "save": args.save,
+        "plots": args.plots,
+        "verbose": args.verbose,
+    }
 
-    print(f"\nНачало обучения на {config['epochs']} эпох...")
-    print(f"Устройство: {config['device']}")
+    print("=" * 60)
+    print("Конфігурація навчання:")
+    for key, value in config.items():
+        print(f"{key}: {value}")
+    print("=" * 60)
+
+    set_seed(config["seed"])
+
+    print(f"\nЗавантаження базової моделі: {weights_path}")
+    model = YOLO(str(weights_path))
+
+    print(f"\nПочаток навчання на {config['epochs']} епох...")
+    print(f"Пристрій: {config['device']}")
 
     results = model.train(
-        data=config['data'],
-        epochs=config['epochs'],
-        imgsz=config['imgsz'],
-        batch=config['batch'],
-        device=config['device'],
-        workers=config['workers'],
-        seed=config['seed'],
-        project=config['project'],
-        name=config['name'],
-        patience=config['patience'],
-        save=config['save'],
-        plots=config['plots'],
-        verbose=config['verbose'],
+        data=str(data_path),
+        epochs=config["epochs"],
+        imgsz=config["imgsz"],
+        batch=config["batch"],
+        device=config["device"],
+        workers=config["workers"],
+        seed=config["seed"],
+        project=config["project"],
+        name=config["name"],
+        patience=config["patience"],
+        save=config["save"],
+        plots=config["plots"],
+        verbose=config["verbose"],
     )
 
-    print("\n" + "=" * 50)
-    print("Обучение завершено!")
-    print(f"Результаты сохранены в: {config['project']}/{config['name']}")
-    print(f"Лучшие веса: {config['project']}/{config['name']}/weights/best.pt")
-    print("=" * 50)
+    print("\n" + "=" * 60)
+    print("Навчання завершено!")
+    print(f"Результати збережено в: {config['project']}/{config['name']}")
+    print(f"Найкращі ваги: {config['project']}/{config['name']}/weights/best.pt")
+    print("=" * 60)
 
-    print("\nМетрики на validation-выборке:")
-    if hasattr(results, 'results_dict'):
+    print("\nМетрики на validation-вибірці:")
+    if hasattr(results, "results_dict"):
         metrics = results.results_dict
         print(f"mAP50: {metrics.get('metrics/mAP50(B)', 'N/A')}")
         print(f"mAP50-95: {metrics.get('metrics/mAP50-95(B)', 'N/A')}")
@@ -130,5 +140,5 @@ def main():
         print(f"Recall: {metrics.get('metrics/recall(B)', 'N/A')}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
