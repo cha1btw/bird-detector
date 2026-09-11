@@ -1,0 +1,14 @@
+# Конфигурация датасета YOLO
+# Этот файл создается автоматически при скачивании датасета через download_dataset.py
+# Для использования датасета Roboflow: python download_dataset.py
+
+path: birds-wnak6-1  # Путь к папке датасета (создается автоматически)
+train: birds-wnak6-1/train/images  # Путь к train изображениям
+val: birds-wnak6-1/valid/images    # Путь к validation изображениям
+
+# Классы
+names:
+  0: bird
+
+# Количество классов
+nc: 1

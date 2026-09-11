@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.yolo26/
+runs/
+.DS_Store
+*.pt
+!weights/best.pt
