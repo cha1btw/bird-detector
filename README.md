@@ -134,5 +134,3 @@ python predict_video.py --input examples/input.mp4 --output examples/output.mp4 
 - оцінка якості,
 - інференс на відео,
 - збереження результату у файл.
-
-Проєкт є придатним для портфоліо junior AI engineer або ML engineer і може бути легко відтворений за інструкцією вище.
